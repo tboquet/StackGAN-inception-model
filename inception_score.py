@@ -208,7 +208,7 @@ def main(unused_argv=None):
                     pooling=None,
                     classes=1000)
 
-                logits, _ = model(inputs)
+                logits = model(inputs)
                 # logits, _ = inference(inputs, num_classes)
                 # calculate softmax after remove 0 which reserve for BG
                 known_logits = \
@@ -216,7 +216,7 @@ def main(unused_argv=None):
                              [FLAGS.batch_size, num_classes - 1])
                 pred_op = tf.nn.softmax(known_logits)
 
-                # Restore the moving average version of the
+ # Restore the moving average version of the
                 # learned variables for eval.
                 variable_averages = \
                     tf.train.ExponentialMovingAverage(MOVING_AVERAGE_DECAY)
