@@ -23,7 +23,8 @@ from PIL import Image
 from inception.slim import slim
 import numpy as np
 import tensorflow as tf
-
+import h5py
+from inception.keras_inception import InceptionV3
 
 import math
 import os.path
@@ -37,21 +38,22 @@ if sys.version_info[0] == 2:
 else:
     import pickle
 
-
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('checkpoint_dir',
-                           './inception_finetuned_models/birds_valid299/model.ckpt-5000',
-                           """Path where to read model checkpoints.""")
+tf.app.flags.DEFINE_string(
+    'checkpoint_dir',
+    './inception_finetuned_models/birds_valid299/model.ckpt-5000',
+    """Path where to read model checkpoints.""")
 
-tf.app.flags.DEFINE_string('image_folder', 
-							'/Users/han/Documents/CUB_200_2011/CUB_200_2011/images',
-							"""Path where to load the images """)
+tf.app.flags.DEFINE_string(
+    'image_folder', '/Users/han/Documents/CUB_200_2011/CUB_200_2011/images',
+    """Path where to load the images """)
 
-tf.app.flags.DEFINE_integer('num_classes', 50,      # 20 for flowers
-                            """Number of classes """)
-tf.app.flags.DEFINE_integer('splits', 10,
-                            """Number of splits """)
+tf.app.flags.DEFINE_integer(
+    'num_classes',
+    50,  # 20 for flowers
+    """Number of classes """)
+tf.app.flags.DEFINE_integer('splits', 10, """Number of splits """)
 tf.app.flags.DEFINE_integer('batch_size', 64, "batch size")
 tf.app.flags.DEFINE_integer('gpu', 1, "The ID of GPU to use")
 # Batch normalization. Constant governing the exponential moving average of
@@ -60,7 +62,6 @@ BATCHNORM_MOVING_AVERAGE_DECAY = 0.9997
 
 # The decay to use for the moving average.
 MOVING_AVERAGE_DECAY = 0.9999
-
 
 fullpath = FLAGS.image_folder
 print(fullpath)
@@ -71,8 +72,7 @@ def preprocess(img):
     # img = Image.fromarray(img, 'RGB')
     if len(img.shape) == 2:
         img = np.resize(img, (img.shape[0], img.shape[1], 3))
-    img = scipy.misc.imresize(img, (299, 299, 3),
-                              interp='bilinear')
+    img = scipy.misc.imresize(img, (299, 299, 3), interp='bilinear')
     img = img.astype(np.float32)
     # [0, 255] --> [0, 1] --> [-1, 1]
     img = img / 127.5 - 1.
@@ -83,10 +83,10 @@ def preprocess(img):
 def get_inception_score(sess, images, pred_op):
     splits = FLAGS.splits
     # assert(type(images) == list)
-    assert(type(images[0]) == np.ndarray)
-    assert(len(images[0].shape) == 3)
-    assert(np.max(images[0]) > 10)
-    assert(np.min(images[0]) >= 0.0)
+    assert (type(images[0]) == np.ndarray)
+    assert (len(images[0].shape) == 3)
+    assert (np.max(images[0]) > 10)
+    assert (np.min(images[0]) >= 0.0)
     bs = FLAGS.batch_size
     preds = []
     num_examples = len(images)
@@ -97,9 +97,9 @@ def get_inception_score(sess, images, pred_op):
         inp = []
         # print('i*bs', i*bs)
         for j in range(bs):
-            if (i*bs + j) == num_examples:
+            if (i * bs + j) == num_examples:
                 break
-            img = images[indices[i*bs + j]]
+            img = images[indices[i * bs + j]]
             # print('*****', img.shape)
             img = preprocess(img)
             inp.append(img)
@@ -118,8 +118,8 @@ def get_inception_score(sess, images, pred_op):
         istart = i * preds.shape[0] // splits
         iend = (i + 1) * preds.shape[0] // splits
         part = preds[istart:iend, :]
-        kl = (part * (np.log(part) -
-              np.log(np.expand_dims(np.mean(part, 0), 0))))
+        kl = (part *
+              (np.log(part) - np.log(np.expand_dims(np.mean(part, 0), 0))))
         kl = np.mean(np.sum(kl, 1))
         scores.append(np.exp(kl))
     print('mean:', "%.2f" % np.mean(scores), 'std:', "%.2f" % np.std(scores))
@@ -128,22 +128,15 @@ def get_inception_score(sess, images, pred_op):
 
 def load_data(fullpath):
     print(fullpath)
-    images = []
-    for path, subdirs, files in os.walk(fullpath):
-        for name in files:
-            if name.rfind('jpg') != -1 or name.rfind('png') != -1:
-                filename = os.path.join(path, name)
-                # print('filename', filename)
-                # print('path', path, '\nname', name)
-                # print('filename', filename)
-                if os.path.isfile(filename):
-                    img = scipy.misc.imread(filename)
-                    images.append(img)
-    print('images', len(images), images[0].shape)
+    f = h5py.File(fullpath, mode='r')
+    images = f['input_image']
     return images
 
 
-def inference(images, num_classes, for_training=False, restore_logits=True,
+def inference(images,
+              num_classes,
+              for_training=False,
+              restore_logits=True,
               scope=None):
     """Build Inception v3 model architecture.
 
@@ -165,24 +158,25 @@ def inference(images, num_classes, for_training=False, restore_logits=True,
     """
     # Parameters for BatchNorm.
     batch_norm_params = {
-      # Decay for the moving averages.
-      'decay': BATCHNORM_MOVING_AVERAGE_DECAY,
-      # epsilon to prevent 0s in variance.
-      'epsilon': 0.001,
+        # Decay for the moving averages.
+        'decay': BATCHNORM_MOVING_AVERAGE_DECAY,
+        # epsilon to prevent 0s in variance.
+        'epsilon': 0.001,
     }
     # Set weight_decay for weights in Conv and FC layers.
     with slim.arg_scope([slim.ops.conv2d, slim.ops.fc], weight_decay=0.00004):
-        with slim.arg_scope([slim.ops.conv2d],
-                            stddev=0.1,
-                            activation=tf.nn.relu,
-                            batch_norm_params=batch_norm_params):
+        with slim.arg_scope(
+            [slim.ops.conv2d],
+                stddev=0.1,
+                activation=tf.nn.relu,
+                batch_norm_params=batch_norm_params):
             logits, endpoints = slim.inception.inception_v3(
-              images,
-              dropout_keep_prob=0.8,
-              num_classes=num_classes,
-              is_training=for_training,
-              restore_logits=restore_logits,
-              scope=scope)
+                images,
+                dropout_keep_prob=0.8,
+                num_classes=num_classes,
+                is_training=for_training,
+                restore_logits=restore_logits,
+                scope=scope)
 
     # Grab the logits associated with the side head. Employed during training.
     auxiliary_logits = endpoints['aux_logits']
@@ -204,11 +198,18 @@ def main(unused_argv=None):
                 # Build a Graph that computes the logits predictions from the
                 # inference model.
                 inputs = tf.placeholder(
-                    tf.float32, [FLAGS.batch_size, 299, 299, 3],
-                    name='inputs')
+                    tf.float32, [FLAGS.batch_size, 299, 299, 3], name='inputs')
                 # print(inputs)
+                model = InceptionV3(
+                    include_top=True,
+                    weights='imagenet',
+                    input_tensor=None,
+                    input_shape=None,
+                    pooling=None,
+                    classes=1000)
 
-                logits, _ = inference(inputs, num_classes)
+                logits, _ = model(inputs)
+                # logits, _ = inference(inputs, num_classes)
                 # calculate softmax after remove 0 which reserve for BG
                 known_logits = \
                     tf.slice(logits, [0, 1],
@@ -225,8 +226,6 @@ def main(unused_argv=None):
                 print('Restore the model from %s).' % FLAGS.checkpoint_dir)
                 images = load_data(fullpath)
                 get_inception_score(sess, images, pred_op)
-
-
 
 
 if __name__ == '__main__':
