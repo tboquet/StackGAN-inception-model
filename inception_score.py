@@ -20,6 +20,7 @@ from __future__ import print_function
 
 from PIL import Image
 
+from keras.datasets import cifar10
 from inception.slim import slim
 import numpy as np
 import tensorflow as tf
@@ -125,10 +126,11 @@ def get_inception_score(sess, images, pred_op):
 
 
 def load_data(fullpath):
-    print(fullpath)
-    f = h5py.File(fullpath, mode='r')
-    images = f['input_image']
-    return images
+    (x_train, y_train), (x_test, y_test) = cifar10.load_data()
+    # print(fullpath)
+    # f = h5py.File(fullpath, mode='r')
+    # images = f['input_image']
+    return x_train
 
 
 def inference(images,
@@ -191,7 +193,7 @@ def main(unused_argv=None):
             with tf.device("/gpu:%d" % FLAGS.gpu):
                 # Number of classes in the Dataset label set plus 1.
                 # Label 0 is reserved for an (unused) background class.
-                num_classes = FLAGS.num_classes + 1
+                # num_classes = FLAGS.num_classes + 1
 
                 # Build a Graph that computes the logits predictions from the
                 # inference model.
@@ -209,10 +211,10 @@ def main(unused_argv=None):
                 logits = model(inputs)
                 # logits, _ = inference(inputs, num_classes)
                 # calculate softmax after remove 0 which reserve for BG
-                known_logits = \
-                    tf.slice(logits, [0, 1],
-                             [FLAGS.batch_size, num_classes - 1])
-                pred_op = tf.nn.softmax(known_logits)
+                # known_logits = \
+                #     tf.slice(logits, [0, 1],
+                #              [FLAGS.batch_size, num_classes - 1])
+                # pred_op = tf.nn.softmax(known_logits)
                 images = load_data(fullpath)
                 get_inception_score(sess, images, pred_op)
 
