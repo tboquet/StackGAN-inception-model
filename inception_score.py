@@ -74,7 +74,7 @@ def preprocess(img):
         img = np.resize(img, (img.shape[0], img.shape[1], 3))
     img = scipy.misc.imresize(img, (299, 299, 3), interp='bilinear')
     img = img.astype(np.float32)
-    img = preprocess_input(img)
+    img = preprocess_input(img) / 255.
     return np.expand_dims(img, 0)
 
 
@@ -104,7 +104,6 @@ def get_inception_score(sess, images, pred_op):
         # print("%d of %d batches" % (i, n_batches))
         # inp = inps[(i * bs):min((i + 1) * bs, len(inps))]
         inp = np.concatenate(inp, 0)
-        print(np.max(inp), np.min(inp))
         #  print('inp', inp.shape)
         pred = sess.run(pred_op, {'inputs:0': inp})
         preds.append(pred)
