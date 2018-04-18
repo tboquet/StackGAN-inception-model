@@ -104,6 +104,7 @@ def get_inception_score(sess, images, pred_op):
         # print("%d of %d batches" % (i, n_batches))
         # inp = inps[(i * bs):min((i + 1) * bs, len(inps))]
         inp = np.concatenate(inp, 0)
+        print(np.max(inp), np.min(inp))
         #  print('inp', inp.shape)
         pred = sess.run(pred_op, {'inputs:0': inp})
         preds.append(pred)
