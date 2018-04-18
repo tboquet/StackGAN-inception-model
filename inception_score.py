@@ -25,6 +25,8 @@ from inception.slim import slim
 import numpy as np
 import tensorflow as tf
 import h5py
+from tqdm import trange
+import keras.backend as K
 from inception.keras_inception import InceptionV3
 from inception.keras_inception import preprocess_input
 
@@ -79,7 +81,7 @@ def preprocess(img):
     return np.expand_dims(img, 0)
 
 
-def get_inception_score(sess, images, pred_op):
+def get_inception_score(images, model):
     splits = FLAGS.splits
     # assert(type(images) == list)
     assert (type(images[0]) == np.ndarray)
@@ -92,7 +94,7 @@ def get_inception_score(sess, images, pred_op):
     n_batches = int(math.floor(float(num_examples) / float(bs)))
     indices = list(np.arange(num_examples))
     np.random.shuffle(indices)
-    for i in range(n_batches):
+    for i in trange(n_batches):
         inp = []
         # print('i*bs', i*bs)
         for j in range(bs):
@@ -106,7 +108,7 @@ def get_inception_score(sess, images, pred_op):
         # inp = inps[(i * bs):min((i + 1) * bs, len(inps))]
         inp = np.concatenate(inp, 0)
         #  print('inp', inp.shape)
-        pred = sess.run(pred_op, {'inputs:0': inp})
+        pred = model.predict(inp)
         preds.append(pred)
         # if i % 100 == 0:
         #     print('Batch ', i)
@@ -190,33 +192,17 @@ def main(unused_argv=None):
         config = tf.ConfigProto(allow_soft_placement=True)
         config.gpu_options.allow_growth = True
         with tf.Session(config=config) as sess:
-            with tf.device("/gpu:%d" % FLAGS.gpu):
-                # Number of classes in the Dataset label set plus 1.
-                # Label 0 is reserved for an (unused) background class.
-                # num_classes = FLAGS.num_classes + 1
+            K.set_session(sess)
+            model = InceptionV3(
+                include_top=True,
+                weights='imagenet',
+                input_tensor=None,
+                input_shape=None,
+                pooling=None,
+                classes=1000)
 
-                # Build a Graph that computes the logits predictions from the
-                # inference model.
-                inputs = tf.placeholder(
-                    tf.float32, [FLAGS.batch_size, 299, 299, 3], name='inputs')
-                # print(inputs)
-                model = InceptionV3(
-                    include_top=True,
-                    weights='imagenet',
-                    input_tensor=None,
-                    input_shape=None,
-                    pooling=None,
-                    classes=1000)
-
-                logits = model(inputs)
-                # logits, _ = inference(inputs, num_classes)
-                # calculate softmax after remove 0 which reserve for BG
-                # known_logits = \
-                #     tf.slice(logits, [0, 1],
-                #              [FLAGS.batch_size, num_classes - 1])
-                # pred_op = tf.nn.softmax(known_logits)
-                images = load_data(fullpath)
-                get_inception_score(sess, images, logits)
+            images = load_data(fullpath)
+            get_inception_score(images, model)
 
 
 if __name__ == '__main__':
