@@ -215,15 +215,6 @@ def main(unused_argv=None):
                     tf.slice(logits, [0, 1],
                              [FLAGS.batch_size, num_classes - 1])
                 pred_op = tf.nn.softmax(known_logits)
-
- # Restore the moving average version of the
-                # learned variables for eval.
-                variable_averages = \
-                    tf.train.ExponentialMovingAverage(MOVING_AVERAGE_DECAY)
-                variables_to_restore = variable_averages.variables_to_restore()
-                saver = tf.train.Saver(variables_to_restore)
-                saver.restore(sess, FLAGS.checkpoint_dir)
-                print('Restore the model from %s).' % FLAGS.checkpoint_dir)
                 images = load_data(fullpath)
                 get_inception_score(sess, images, pred_op)
 
