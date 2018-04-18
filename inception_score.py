@@ -25,6 +25,8 @@ import numpy as np
 import tensorflow as tf
 import h5py
 from inception.keras_inception import InceptionV3
+from inception.keras_inception import preprocess_input
+
 
 import math
 import os.path
@@ -68,15 +70,10 @@ print(fullpath)
 
 
 def preprocess(img):
-    # print('img', img.shape, img.max(), img.min())
-    # img = Image.fromarray(img, 'RGB')
     if len(img.shape) == 2:
         img = np.resize(img, (img.shape[0], img.shape[1], 3))
     img = scipy.misc.imresize(img, (299, 299, 3), interp='bilinear')
-    img = img.astype(np.float32)
-    # [0, 255] --> [0, 1] --> [-1, 1]
-    img = img / 127.5 - 1.
-    # print('img', img.shape, img.max(), img.min())
+    img = preprocess_input(img)
     return np.expand_dims(img, 0)
 
 
