@@ -73,6 +73,7 @@ def preprocess(img):
     if len(img.shape) == 2:
         img = np.resize(img, (img.shape[0], img.shape[1], 3))
     img = scipy.misc.imresize(img, (299, 299, 3), interp='bilinear')
+    img *= 1.
     img = preprocess_input(img)
     return np.expand_dims(img, 0)
 
