@@ -77,8 +77,7 @@ def preprocess(img):
         img = np.resize(img, (img.shape[0], img.shape[1], 3))
     img = scipy.misc.imresize(img, (299, 299, 3), interp='bilinear')
     img = img.astype(np.float32)
-    print(img.min(), img.max())
-    img = preprocess_input(img) / 255.
+    img = preprocess_input(img, mode='tf')
     return np.expand_dims(img, 0)
 
 
