@@ -216,7 +216,7 @@ def main(unused_argv=None):
                 #              [FLAGS.batch_size, num_classes - 1])
                 # pred_op = tf.nn.softmax(known_logits)
                 images = load_data(fullpath)
-                get_inception_score(sess, images, pred_op)
+                get_inception_score(sess, images, logits)
 
 
 if __name__ == '__main__':
