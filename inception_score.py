@@ -20,8 +20,6 @@ from __future__ import print_function
 
 from PIL import Image
 
-from keras.datasets import cifar10
-from inception.slim import slim
 import numpy as np
 import tensorflow as tf
 import h5py
@@ -32,7 +30,6 @@ from inception.keras_inception import preprocess_input
 
 
 import math
-import os.path
 import scipy.misc
 # import time
 # import scipy.io as sio
@@ -83,7 +80,6 @@ def preprocess(img):
 
 def get_inception_score(images, model):
     splits = FLAGS.splits
-    # assert(type(images) == list)
     assert (type(images[0]) == np.ndarray)
     assert (len(images[0].shape) == 3)
     assert (np.max(images[0]) > 10)
@@ -91,6 +87,7 @@ def get_inception_score(images, model):
     bs = FLAGS.batch_size
     preds = []
     num_examples = len(images)
+    # TODO: remove
     num_examples = 1000
     n_batches = int(math.floor(float(num_examples) / float(bs)))
     indices = list(np.arange(num_examples))
@@ -115,7 +112,6 @@ def get_inception_score(images, model):
             print('Batch ', i)
             print('inp', inp.shape, inp.max(), inp.min())
     preds = np.concatenate(preds, 0)
-    print('Preds', list(preds.mean(axis=1)))
     scores = []
     for i in range(splits):
         istart = i * preds.shape[0] // splits
