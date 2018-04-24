@@ -25,8 +25,10 @@ import tensorflow as tf
 import h5py
 from tqdm import trange
 import keras.backend as K
-from inception.keras_inception import InceptionV3
-from inception.keras_inception import preprocess_input
+from keras.applications import InceptionV3
+from keras.applications.inception_v3 import preprocess_input
+# from inception.keras_inception import InceptionV3
+# from inception.keras_inception import preprocess_input
 
 
 import math
