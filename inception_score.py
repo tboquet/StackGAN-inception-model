@@ -42,6 +42,7 @@ if sys.version_info[0] == 2:
 else:
     import pickle
 
+
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string(
@@ -84,7 +85,6 @@ def get_inception_score(images, model):
     preds = []
     num_examples = len(images)
     # TODO: remove
-    num_examples = 1000
     n_batches = int(math.floor(float(num_examples) / float(bs)))
     indices = list(np.arange(num_examples))
     np.random.shuffle(indices)
@@ -108,7 +108,13 @@ def get_inception_score(images, model):
             print('Batch ', i)
             print('inp', inp.shape, inp.max(), inp.min())
     preds = np.concatenate(preds, 0)
-    scores = []
+    scores = compute_score(preds, splits)
+    print('mean:', "%.2f" % np.mean(scores), 'std:', "%.2f" % np.std(scores))
+    return np.mean(scores), np.std(scores)
+
+
+def compute_score(preds, splits):
+    scores = np.empty((splits,))
     for i in range(splits):
         istart = i * preds.shape[0] // splits
         iend = (i + 1) * preds.shape[0] // splits
@@ -116,9 +122,8 @@ def get_inception_score(images, model):
         kl = (part *
               (np.log(part) - np.log(np.expand_dims(np.mean(part, 0), 0))))
         kl = np.mean(np.sum(kl, 1))
-        scores.append(np.exp(kl))
-    print('mean:', "%.2f" % np.mean(scores), 'std:', "%.2f" % np.std(scores))
-    return np.mean(scores), np.std(scores)
+        scores[i] = np.exp(kl)
+    return scores
 
 
 def load_data(fullpath):
